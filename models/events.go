@@ -1,15 +1,15 @@
-package main
+package models
 
-type event struct {
+type Event struct {
 	UserID  string `json:"userId"`
 	Payload string
 }
 
-type eventResponse struct {
+type EventResponse struct {
 	Msg string `json:"msg"`
 }
 
-type eventMetadata struct {
+type EventMetadata struct {
 	// duplicating event fields to avoid embedded structs reformat before write to redis
 	UserID        string `redis:"userId"`
 	Payload       string `redis:"payload"`

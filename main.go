@@ -2,11 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/harshavardhan/event_delivery/consumer"
+	"github.com/harshavardhan/event_delivery/models"
+	"github.com/harshavardhan/event_delivery/redis"
 	"log"
 	"net/http"
 )
 
-func parseRequest(req *http.Request) (ev event) {
+func parseRequest(req *http.Request) (ev models.Event) {
 	// No validation on request method or body yet
 	decoder := json.NewDecoder(req.Body)
 	_ = decoder.Decode(&ev)
@@ -15,7 +18,7 @@ func parseRequest(req *http.Request) (ev event) {
 }
 
 func sendResponse(w http.ResponseWriter, msg string) {
-	var resp = eventResponse{
+	var resp = models.EventResponse{
 		Msg: msg,
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -24,13 +27,11 @@ func sendResponse(w http.ResponseWriter, msg string) {
 
 func receiveEvent(w http.ResponseWriter, req *http.Request) {
 	ev := parseRequest(req)
-	storeEvent(ev)
+	redis.StoreEvent(ev)
 	sendResponse(w, "Event received")
 }
 
-func main() {
-	redisInit()
-
+func serverInit() {
 	http.HandleFunc("/receive_event", receiveEvent)
 
 	port := "8090"
@@ -39,4 +40,12 @@ func main() {
 		log.Fatalf("Unable to start http service : %s", err)
 		return
 	}
+}
+
+func main() {
+	redis.RedisInit()
+
+	go func() { serverInit() }()
+
+	consumer.ConsumeEvents()
 }

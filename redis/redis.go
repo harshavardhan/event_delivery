@@ -1,8 +1,10 @@
-package main
+package redis
 
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/harshavardhan/event_delivery/config"
+	"github.com/harshavardhan/event_delivery/models"
 	"github.com/redis/go-redis/v9"
 	"log"
 	"time"
@@ -10,8 +12,8 @@ import (
 
 var redisClient *redis.Client
 
-func storeEvent(ev event) {
-	var em = eventMetadata{
+func StoreEvent(ev models.Event) {
+	var em = models.EventMetadata{
 		Timestamp: time.Now().UnixNano(),
 		UserID:    ev.UserID,
 		Payload:   ev.Payload,
@@ -27,7 +29,7 @@ func storeEvent(ev event) {
 	redisClient.HSet(ctx, id, em)
 
 	// Add broadcast to destinations
-	for _, destination := range destinations {
+	for _, destination := range config.Destinations {
 		// Each destination has a sorted set from which events are picked up by earliest time first
 		redisClient.ZAdd(ctx, destination, redis.Z{
 			Score:  float64(em.ExecTimestamp),
@@ -39,7 +41,7 @@ func storeEvent(ev event) {
 	}
 }
 
-func redisInit() {
+func RedisInit() {
 	redisAddr := "localhost:6379"
 	redisClient = redis.NewClient(&redis.Options{
 		Addr:     redisAddr,
