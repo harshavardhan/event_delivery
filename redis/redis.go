@@ -24,16 +24,15 @@ func StoreEvent(ev models.Event) {
 	}
 	em.ExecTimestamp = em.Timestamp
 
-	// Add event metadata to redis
-	id := uuid.New().String()
-	log.Println(id)
-
-	// need to handle redis errors later
-	// Store event data mapped to id in a hash
-	redisClient.HSet(ctx, id, em)
-
 	// Add broadcast to destinations
 	for _, destination := range config.Destinations {
+		id := uuid.New().String()
+		log.Printf("Adding %s to destination %s", id, destination)
+
+		// need to handle redis errors later
+		// Store event data mapped to id in a hash
+		redisClient.HSet(ctx, id, em)
+
 		// Each destination has a sorted set from which events are picked up by earliest time first
 		redisClient.ZAdd(ctx, "$"+destination, redis.Z{
 			Score:  float64(em.ExecTimestamp),
