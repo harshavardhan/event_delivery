@@ -49,7 +49,9 @@ func StoreEvent(destination string, now int64, ev models.Event) (id string) {
 	return
 }
 
-func ConsumeEvents(before int64, destination string) {
+func ProcessEvents(before int64, destination string) []string {
+	events := make([]string, 0)
+
 	// FIFO : pickup earlier execution timestamp first
 	// need to add some element count limits here while fetching
 	ids := redisClient.ZRangeByScore(ctx, sqKey(destination), &redis.ZRangeBy{
@@ -75,6 +77,7 @@ func ConsumeEvents(before int64, destination string) {
 			redisClient.RPop(ctx, destination)
 
 			log.Printf("Successfully sent payload %s for destination %s", em.Payload, destination)
+			events = append(events, id)
 			continue
 		}
 
@@ -96,6 +99,7 @@ func ConsumeEvents(before int64, destination string) {
 			Member: utils.BuildKey(em.Timestamp, id),
 		})
 	}
+	return events
 }
 
 func Init() {

@@ -11,7 +11,7 @@ func ConsumeEvents() {
 		// can parallelize across destinations?
 		for _, destination := range config.Destinations {
 			// log.Print("Processing events from " + destination)
-			redis.ConsumeEvents(time.Now().UnixNano(), destination)
+			redis.ProcessEvents(time.Now().UnixNano(), destination)
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
