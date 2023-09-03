@@ -2,6 +2,7 @@ package utils
 
 import (
 	"math/rand"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -42,4 +43,12 @@ func MockSuccess(destination string) bool {
 	default:
 		return false
 	}
+}
+
+func GetEnv(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
 }

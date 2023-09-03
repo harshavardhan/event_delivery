@@ -104,10 +104,14 @@ func ProcessEvents(before int64, destination string) []string {
 
 func Init() {
 	redisClient = redis.NewClient(&redis.Options{
-		Addr:     config.RedisAddr,
+		Addr:     utils.GetEnv("REDIS_URL", config.RedisAddr),
 		Password: "",
 		DB:       0,
 	})
+	err := redisClient.Ping(ctx).Err()
+	if err != nil {
+		log.Fatalf("Unable to connect to redis : %s", err)
+	}
 }
 
 func Cleanup() {
