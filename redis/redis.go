@@ -36,7 +36,7 @@ func StoreEvent(ev models.Event) {
 		// Each destination has a sorted set from which events are picked up by earliest time first
 		redisClient.ZAdd(ctx, "$"+destination, redis.Z{
 			Score:  float64(em.ExecTimestamp),
-			Member: id,
+			Member: utils.BuildKey(em.Timestamp, id),
 		})
 
 		// Each destination has a list for order in which events have to be processed
@@ -50,7 +50,8 @@ func ConsumeEvents(before int64, destination string) {
 		Min: "0",
 		Max: strconv.FormatInt(before, 10),
 	}).Val()
-	for _, id := range ids {
+	for _, cid := range ids {
+		id := utils.GetId(cid)
 		firstId := redisClient.LIndex(ctx, destination, -1).Val()
 
 		execute := id == firstId
@@ -64,7 +65,7 @@ func ConsumeEvents(before int64, destination string) {
 		if execute && successResponse {
 			// might need to use multi and exec together here to update in a transaction
 			redisClient.Del(ctx, id)
-			redisClient.ZRem(ctx, "$"+destination, id)
+			redisClient.ZRem(ctx, "$"+destination, utils.BuildKey(em.Timestamp, id))
 			redisClient.RPop(ctx, destination)
 			continue
 		}
@@ -83,7 +84,7 @@ func ConsumeEvents(before int64, destination string) {
 		// update exec time score
 		redisClient.ZAdd(ctx, "$"+destination, redis.Z{
 			Score:  float64(em.ExecTimestamp),
-			Member: id,
+			Member: utils.BuildKey(em.Timestamp, id),
 		})
 	}
 }
