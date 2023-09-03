@@ -63,7 +63,7 @@ func ProcessEvents(before int64, destination string) []string {
 		firstId := redisClient.LIndex(ctx, destination, -1).Val()
 
 		execute := id == firstId
-		successResponse := utils.MockSuccess()
+		successResponse := utils.MockSuccess(destination)
 		// log.Println(id, execute, successResponse)
 
 		metadataMap := redisClient.HGetAll(ctx, id).Val()

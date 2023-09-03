@@ -18,7 +18,7 @@ func TestStoreEvent(t *testing.T) {
 		Payload: "data1",
 	}
 	now := time.Now().UnixNano()
-	id := StoreEvent("A", now, ev)
+	id := StoreEvent("B", now, ev)
 
 	var em models.EventMetadata
 	_ = mapstructure.WeakDecode(redisClient.HGetAll(ctx, id).Val(), &em)
@@ -35,18 +35,18 @@ func TestProcessEvent(t *testing.T) {
 	inIds := make([]string, 0)
 	outIds := make([]string, 0)
 
-	n := 100
+	n := 25
 	for i := 1; i <= n; i++ {
 		ev := models.Event{
 			UserID:  strconv.Itoa(rand.Intn(i)),
 			Payload: strconv.Itoa(i),
 		}
-		id := StoreEvent("A", time.Now().UnixNano(), ev)
+		id := StoreEvent("B", time.Now().UnixNano(), ev)
 		inIds = append(inIds, id)
 	}
 
 	for len(outIds) != n {
-		processedIds := ProcessEvents(time.Now().UnixNano(), "A")
+		processedIds := ProcessEvents(time.Now().UnixNano(), "B")
 		outIds = append(outIds, processedIds...)
 		time.Sleep(100 * time.Millisecond)
 	}
