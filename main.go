@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/harshavardhan/event_delivery/config"
 	"github.com/harshavardhan/event_delivery/consumer"
 	"github.com/harshavardhan/event_delivery/models"
 	"github.com/harshavardhan/event_delivery/producer"
@@ -35,8 +36,7 @@ func receiveEvent(w http.ResponseWriter, req *http.Request) {
 func serverInit() {
 	http.HandleFunc("/receive_event", receiveEvent)
 
-	port := "8090"
-	err := http.ListenAndServe(":"+port, nil)
+	err := http.ListenAndServe(":"+config.ServerPort, nil)
 	if err != nil {
 		log.Fatalf("Unable to start http service : %s", err)
 		return
@@ -44,7 +44,7 @@ func serverInit() {
 }
 
 func main() {
-	redis.RedisInit()
+	redis.Init()
 
 	go func() { serverInit() }()
 

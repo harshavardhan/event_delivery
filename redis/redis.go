@@ -16,6 +16,11 @@ import (
 var redisClient *redis.Client
 var ctx = context.Background()
 
+// sorted queue key
+func sqKey(destination string) string {
+	return "sortedSet" + "$" + destination
+}
+
 func StoreEvent(ev models.Event) {
 	var em = models.EventMetadata{
 		Timestamp: time.Now().UnixNano(),
@@ -34,7 +39,7 @@ func StoreEvent(ev models.Event) {
 		redisClient.HSet(ctx, id, em)
 
 		// Each destination has a sorted set from which events are picked up by earliest time first
-		redisClient.ZAdd(ctx, "$"+destination, redis.Z{
+		redisClient.ZAdd(ctx, sqKey(destination), redis.Z{
 			Score:  float64(em.ExecTimestamp),
 			Member: utils.BuildKey(em.Timestamp, id),
 		})
@@ -46,7 +51,7 @@ func StoreEvent(ev models.Event) {
 
 func ConsumeEvents(before int64, destination string) {
 	// need to add some element count limits here while fetching
-	ids := redisClient.ZRangeByScore(ctx, "$"+destination, &redis.ZRangeBy{
+	ids := redisClient.ZRangeByScore(ctx, sqKey(destination), &redis.ZRangeBy{
 		Min: "0",
 		Max: strconv.FormatInt(before, 10),
 	}).Val()
@@ -65,7 +70,7 @@ func ConsumeEvents(before int64, destination string) {
 		if execute && successResponse {
 			// might need to use multi and exec together here to update in a transaction
 			redisClient.Del(ctx, id)
-			redisClient.ZRem(ctx, "$"+destination, utils.BuildKey(em.Timestamp, id))
+			redisClient.ZRem(ctx, sqKey(destination), utils.BuildKey(em.Timestamp, id))
 			redisClient.RPop(ctx, destination)
 
 			log.Printf("Successfully sent payload %s for destination %s", em.Payload, destination)
@@ -73,10 +78,11 @@ func ConsumeEvents(before int64, destination string) {
 		}
 
 		if !execute {
+			// not the first-in one, so set execTime to the execTime of the first-in one
 			firstExecTimestamp := utils.StrToInt(redisClient.HGet(ctx, firstId, "execTimestamp").Val())
 			em.ExecTimestamp = firstExecTimestamp
 		} else {
-			// no success response case
+			// no success response from destination case
 			// exponential backoff depending on retryCount
 			em.ExecTimestamp = time.Now().UnixNano() + (1<<em.RetryCount)*int64(config.Delta)
 			em.RetryCount += 1
@@ -84,17 +90,16 @@ func ConsumeEvents(before int64, destination string) {
 		// update metadata
 		redisClient.HSet(ctx, id, em)
 		// update exec time score
-		redisClient.ZAdd(ctx, "$"+destination, redis.Z{
+		redisClient.ZAdd(ctx, sqKey(destination), redis.Z{
 			Score:  float64(em.ExecTimestamp),
 			Member: utils.BuildKey(em.Timestamp, id),
 		})
 	}
 }
 
-func RedisInit() {
-	redisAddr := "localhost:6379"
+func Init() {
 	redisClient = redis.NewClient(&redis.Options{
-		Addr:     redisAddr,
+		Addr:     config.RedisAddr,
 		Password: "",
 		DB:       0,
 	})

@@ -12,6 +12,7 @@ func StrToInt(s string) int64 {
 }
 
 func BuildKey(ts int64, id string) string {
+	// need to convert ts to a fixed size string : ignoring for now
 	return strconv.FormatInt(ts, 10) + "$" + id
 }
 

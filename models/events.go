@@ -10,7 +10,7 @@ type EventResponse struct {
 }
 
 type EventMetadata struct {
-	// duplicating event fields to avoid embedded structs reformat before write to redis
+	// duplicating Event fields to avoid doing embedded structs flatten before write to redis
 	UserID        string `redis:"userId"`
 	Payload       string `redis:"payload"`
 	Timestamp     int64  `redis:"timestamp"`     // (to be generally set by the client) set to server time if not sent (unix epoch nanoseconds)
