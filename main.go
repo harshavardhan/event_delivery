@@ -9,6 +9,7 @@ import (
 	"github.com/harshavardhan/event_delivery/redis"
 	"log"
 	"net/http"
+	"time"
 )
 
 func parseRequest(req *http.Request) (ev models.Event) {
@@ -29,7 +30,10 @@ func sendResponse(w http.ResponseWriter, msg string) {
 
 func receiveEvent(w http.ResponseWriter, req *http.Request) {
 	ev := parseRequest(req)
-	redis.StoreEvent(ev)
+	// Add broadcast to destinations
+	for _, destination := range config.Destinations {
+		redis.StoreEvent(destination, time.Now().UnixNano(), ev)
+	}
 	sendResponse(w, "Event received")
 }
 

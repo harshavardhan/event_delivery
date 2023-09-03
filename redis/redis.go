@@ -21,33 +21,32 @@ func sqKey(destination string) string {
 	return "sortedSet" + "$" + destination
 }
 
-func StoreEvent(ev models.Event) {
+func StoreEvent(destination string, now int64, ev models.Event) (id string) {
 	var em = models.EventMetadata{
-		Timestamp: time.Now().UnixNano(),
-		UserID:    ev.UserID,
-		Payload:   ev.Payload,
+		Timestamp:     now,
+		ExecTimestamp: now,
+		UserID:        ev.UserID,
+		Payload:       ev.Payload,
 	}
-	em.ExecTimestamp = em.Timestamp
 
-	// Add broadcast to destinations
 	// To avoid downtime at one destination affecting another, we use one queue per destination
-	for _, destination := range config.Destinations {
-		id := uuid.New().String()
-		// log.Printf("Adding %s to destination %s", id, destination)
 
-		// need to handle redis errors later
-		// Store event data mapped to id in a hash
-		redisClient.HSet(ctx, id, em)
+	id = uuid.New().String()
+	// log.Printf("Adding %s to destination %s", id, destination)
 
-		// Each destination has a sorted set from which events are picked up by earliest time first
-		redisClient.ZAdd(ctx, sqKey(destination), redis.Z{
-			Score:  float64(em.ExecTimestamp),
-			Member: utils.BuildKey(em.Timestamp, id),
-		})
+	// need to handle redis errors later
+	// Store event data mapped to id in a hash
+	redisClient.HSet(ctx, id, em)
 
-		// Each destination has a list for order in which events have to be processed
-		redisClient.LPush(ctx, destination, id)
-	}
+	// Each destination has a sorted set from which events are picked up by earliest time first
+	redisClient.ZAdd(ctx, sqKey(destination), redis.Z{
+		Score:  float64(em.ExecTimestamp),
+		Member: utils.BuildKey(em.Timestamp, id),
+	})
+
+	// Each destination has a list for order in which events have to be processed
+	redisClient.LPush(ctx, destination, id)
+	return
 }
 
 func ConsumeEvents(before int64, destination string) {
@@ -105,4 +104,8 @@ func Init() {
 		Password: "",
 		DB:       0,
 	})
+}
+
+func Cleanup() {
+	redisClient.FlushDB(ctx)
 }
