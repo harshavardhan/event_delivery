@@ -27,7 +27,7 @@ func StoreEvent(ev models.Event) {
 	// Add broadcast to destinations
 	for _, destination := range config.Destinations {
 		id := uuid.New().String()
-		log.Printf("Adding %s to destination %s", id, destination)
+		// log.Printf("Adding %s to destination %s", id, destination)
 
 		// need to handle redis errors later
 		// Store event data mapped to id in a hash
@@ -56,7 +56,7 @@ func ConsumeEvents(before int64, destination string) {
 
 		execute := id == firstId
 		successResponse := utils.MockSuccess()
-		log.Println(id, execute, successResponse)
+		// log.Println(id, execute, successResponse)
 
 		metadataMap := redisClient.HGetAll(ctx, id).Val()
 		var em models.EventMetadata
@@ -67,6 +67,8 @@ func ConsumeEvents(before int64, destination string) {
 			redisClient.Del(ctx, id)
 			redisClient.ZRem(ctx, "$"+destination, utils.BuildKey(em.Timestamp, id))
 			redisClient.RPop(ctx, destination)
+
+			log.Printf("Successfully sent payload %s for destination %s", em.Payload, destination)
 			continue
 		}
 

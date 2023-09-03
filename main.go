@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/harshavardhan/event_delivery/consumer"
 	"github.com/harshavardhan/event_delivery/models"
+	"github.com/harshavardhan/event_delivery/producer"
 	"github.com/harshavardhan/event_delivery/redis"
 	"log"
 	"net/http"
@@ -13,7 +14,7 @@ func parseRequest(req *http.Request) (ev models.Event) {
 	// No validation on request method or body yet
 	decoder := json.NewDecoder(req.Body)
 	_ = decoder.Decode(&ev)
-	log.Printf("%+v\n", ev)
+	// log.Printf("%+v\n", ev)
 	return
 }
 
@@ -46,6 +47,8 @@ func main() {
 	redis.RedisInit()
 
 	go func() { serverInit() }()
+
+	go func() { producer.ProduceEvents() }()
 
 	consumer.ConsumeEvents()
 }

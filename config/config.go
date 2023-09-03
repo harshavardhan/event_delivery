@@ -5,4 +5,4 @@ import "time"
 // list of possible destinations
 var Destinations = []string{"A", "B", "C", "D"}
 
-var Delta = 20 * time.Second // delta for exponential backoff
+var Delta = 200 * time.Millisecond // delta for exponential backoff
