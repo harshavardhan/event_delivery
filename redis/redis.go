@@ -30,6 +30,7 @@ func StoreEvent(ev models.Event) {
 	em.ExecTimestamp = em.Timestamp
 
 	// Add broadcast to destinations
+	// To avoid downtime at one destination affecting another, we use one queue per destination
 	for _, destination := range config.Destinations {
 		id := uuid.New().String()
 		// log.Printf("Adding %s to destination %s", id, destination)
@@ -50,6 +51,7 @@ func StoreEvent(ev models.Event) {
 }
 
 func ConsumeEvents(before int64, destination string) {
+	// FIFO : pickup earlier execution timestamp first
 	// need to add some element count limits here while fetching
 	ids := redisClient.ZRangeByScore(ctx, sqKey(destination), &redis.ZRangeBy{
 		Min: "0",

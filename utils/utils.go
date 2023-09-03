@@ -22,6 +22,7 @@ func GetId(key string) string {
 }
 
 // mock execution -> success : 200 , failure : 500 status code
+// We assume there are no bad payloads. Responses from destination are either 200 or 500 with 500 being retryable
 func MockSuccess() bool {
 	// failure to success ratio is 1:2
 	return rand.Float64() >= (1.0 / 3.0)
